@@ -1,0 +1,122 @@
+# 서울생존식단 v10 편집표 (v9에서 꿀팁·특가·재무팀장 정산 장면 제거, 흔들림 보정 추가) (pipeline/render.py가 읽는 파일)
+# 시간 단위는 초. clips의 start는 원본 영상에서 시작할 위치.
+# cards의 at은 장면 안에서 카드가 나오는 시각, add는 누적 금액 카운터에 더할 금액.
+
+title: 하루 식비 1만원 챌린지
+
+scenes:
+  - id: 1  # 후킹
+    dur: 3
+    counter: false
+    clips:
+      - {file: IMG_4735.MOV, start: 4.0, zoom: [1.15, 1.0]}
+    hook: ["서울에서 하루 1만원", "버틸 수 있을까?"]
+    effects:
+      - {type: glitch, at: 0, dur: 0.45}
+
+  - id: 2  # 출근
+    dur: 3
+    clips:
+      - {file: IMG_3726.MOV, start: 2.0}
+    subtitle: 성수 직장인의 생존 식단
+    effects:
+      - {type: flash, at: 0}
+
+  - id: 3  # 구운계란
+    dur: 4
+    clips:
+      - {file: IMG_3754.MOV, start: 1.0}
+    subtitle: AM 7:00 조리시간 0초
+    cards:
+      - {at: 1.0, label: 구운계란 2개, price: 794원, sub: 단백질 12g, add: 794}
+
+  - id: 4  # 쉐이크
+    dur: 5
+    clips:
+      - {file: IMG_3753.MOV, start: 2.0, dur: 2.5}
+      - {file: IMG_3739.MOV, start: 27.0}
+    subtitle: 헬스인 아침 쉐이크
+    cards:
+      - {at: 0.6, label: 프로틴 1스쿱, price: 738원, sub: 단백질 30g, add: 738}
+      - {at: 3.0, label: 우유 1컵, price: 410원, sub: 단백질 6g, add: 410}
+    effects:
+      - {type: flash, at: 0}
+
+  - id: 5  # 바나나
+    dur: 4
+    clips:
+      - {file: IMG_4707.MOV, start: 0, zoom: [1.0, 1.14]}
+    subtitle: 바나나 하나 추가
+    cards:
+      - {at: 1.2, label: 바나나 1개, price: 약 400원, add: 400}
+
+  - id: 6  # 음료
+    dur: 4
+    clips:
+      - {file: IMG_3740.MOV, start: 5.0, dur: 2.2}
+      - {file: IMG_3740.MOV, start: 15.5}
+    subtitle: 물도 사 먹는 서울
+    cards:
+      - {at: 0.5, label: 에너지드링크, price: 825원, add: 825}
+      - {at: 2.5, label: 생수 1병, price: 215원, add: 215}
+    effects:
+      - {type: flash, at: 0}
+
+  - id: 7  # 아침 정산
+    dur: 3
+    clips:
+      - {file: IMG_4708.MOV, start: 0, zoom: [1.0, 1.12]}
+    cards:
+      - {at: 0.3, label: 아침 합계, price: "2,342원", sub: 단백질 49g, big: true}
+
+  - id: 8  # 회사 간식
+    dur: 4
+    clips:
+      - {file: IMG_3768.MOV, start: 0}
+    subtitle: PM 3:00 동료 눈치 ON
+    cards:
+      - {at: 1.0, label: 구운계란 3개, price: "1,191원", sub: 단백질 18g, add: 1191}
+    effects:
+      - {type: flash, at: 0}
+
+  - id: 11  # 퇴근 전 → 운동
+    dur: 4
+    clips:
+      - {file: IMG_4709.MOV, start: 0.5, dur: 2.0}
+      - {file: IMG_4677.MOV, start: 1.5}
+    subtitle: 퇴근 전 한 끼 → 바로 운동
+    cards:
+      - {at: 0.5, label: 닭가슴살 + 햇반, price: "2,067원", sub: 단백질 29g, add: 2067}
+
+  - id: 12  # 저녁
+    dur: 5
+    clips:
+      - {file: IMG_4711.MOV, start: 1.0, dur: 1.7, fit: blur}
+      - {file: IMG_4710.MOV, start: 1.0, dur: 1.7}
+      - {file: IMG_4726.MOV, start: 1.0}
+    subtitle: 운동 끝, 저녁
+    cards:
+      - {at: 0.3, label: 계란후라이 2개, price: 560원, add: 560}
+      - {at: 2.0, label: 명란 30g, price: 447원, add: 447}
+      - {at: 3.7, label: 김 1봉, price: 400원, add: 400}
+    effects:
+      - {type: flash, at: 0}
+
+  - id: 13  # 저녁 정산
+    dur: 3
+    clips:
+      - {file: IMG_4713.MOV, start: 0}
+    cards:
+      - {at: 0.2, label: "+ 닭가슴살·햇반", price: "2,067원", add: 2067}
+      - {at: 1.6, label: 저녁 합계, price: "3,474원", sub: 단백질 49g, big: true}
+
+  - id: 15  # 엔딩
+    dur: 4
+    clips:
+      - {file: IMG_4655.MOV, start: 0, zoom: [1.0, 1.08]}
+    subtitle:
+      - {at: 0, text: 하루 식비 방어 성공!}
+      - {at: 2.0, text: 같이 버티실 분 팔로우}
+    effects:
+      - {type: flash, at: 0}
+      - {type: shake, at: 0.1}
