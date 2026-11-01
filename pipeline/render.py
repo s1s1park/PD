@@ -227,18 +227,33 @@ class Graphics:
 
 # ---------- 영상 소스 ----------
 
-def clip_frames(src_dir, clip, n):
+def stabilize_filter(path, start, length, cache_dir):
+    """흔들림 보정: 1차로 흔들림을 분석해 파일로 저장하고, 2차 필터 문자열을 돌려준다."""
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    trf = cache_dir / f"{path.stem}_{start:.2f}_{length:.2f}.trf"
+    if not trf.exists():
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(start), "-t", str(length), "-i", str(path),
+                        "-vf", f"vidstabdetect=shakiness=6:accuracy=12:result='{trf}'", "-f", "null", "-"],
+                       check=True)
+    return f"vidstabtransform=input='{trf}':smoothing=20:optzoom=1:interpol=bicubic,"
+
+
+def clip_frames(src_dir, clip, n, cache_dir):
     path = Path(src_dir) / clip["file"]
+    start, length = clip.get("start", 0), n / FPS + 0.5
+    # 휴대폰 촬영 원본(IMG_)은 기본으로 흔들림 보정, 화면 녹화 등은 끔
+    stab = stabilize_filter(path, start, length, cache_dir) \
+        if clip.get("stabilize", path.name.startswith("IMG_")) else ""
     fit = clip.get("fit", "cover")
     if fit == "blur":
-        vf = (f"split[a][b];[a]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+        vf = (f"{stab}split[a][b];[a]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
               f"boxblur=40:4,eq=brightness=-0.12[bg];[b]scale={W}:-2[fg];"
               f"[bg][fg]overlay=(W-w)/2:(H-h)/2,fps={FPS},{COLOR}")
     else:
-        vf = f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS},{COLOR}"
+        vf = f"{stab}scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS},{COLOR}"
     if clip.get("bg_blur"):
         vf += ",boxblur=30:3,eq=brightness=-0.25"
-    cmd = ["ffmpeg", "-v", "error", "-ss", str(clip.get("start", 0)), "-t", str(n / FPS + 0.5),
+    cmd = ["ffmpeg", "-v", "error", "-ss", str(start), "-t", str(length),
            "-i", str(path), "-filter_complex" if fit == "blur" else "-vf", vf,
            "-f", "rawvideo", "-pix_fmt", "rgb24", "-"]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -378,7 +393,7 @@ def render(spec_path, src_dir, out_path, fonts_dir, only=None):
         for clip, n in zip(clips, counts):
             mix_at(audio, clip_audio(src_dir, clip, int(n / FPS * SR)), ct)
             z0, z1 = clip.get("zoom", [1.0, 1.1])
-            for k, frame in enumerate(clip_frames(src_dir, clip, n)):
+            for k, frame in enumerate(clip_frames(src_dir, clip, n, Path(out_path).parent / ".stab")):
                 t = frame_i / FPS
                 lt = t - s0
                 p = k / max(n - 1, 1)
