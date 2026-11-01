@@ -73,7 +73,7 @@ class Timeline:
     starts: list
     total: float
     events: list
-    counter_adds: list  # (t, 금액)
+    counter_adds: list  # (t, 금액, 단백질g)
 
     def scene_at(self, t):
         for i in range(len(self.scenes) - 1, -1, -1):
@@ -89,8 +89,8 @@ def build_timeline(spec):
         starts.append(t)
         for c in sc.get("cards", []):
             events.append(Event(t + c["at"], "card", c))
-            if c.get("add"):
-                adds.append((t + c["at"], c["add"]))
+            if c.get("add") or c.get("protein"):
+                adds.append((t + c["at"], c.get("add", 0), c.get("protein", 0)))
         for e in sc.get("effects", []):
             events.append(Event(t + e.get("at", 0), e["type"], e))
         if sc.get("receipt"):
@@ -110,10 +110,36 @@ class Graphics:
                stroke_fill=(0, 0, 0), anchor=anchor)
 
     def counter_value(self, t):
-        v = 0.0
-        for at, amount in self.tl.counter_adds:
-            v += amount * ease_out_cubic((t - at) / 0.6)
-        return v
+        money = protein = 0.0
+        for at, amount, prot in self.tl.counter_adds:
+            k = ease_out_cubic((t - at) / 0.6)
+            money += amount * k
+            protein += prot * k
+        return money, protein
+
+    def counters(self, d, t):
+        money, protein = self.counter_value(t)
+        money_rolling = any(0 < t - at < 0.8 for at, a, _ in self.tl.counter_adds if a)
+        prot_rolling = any(0 < t - at < 0.8 for at, _, p in self.tl.counter_adds if p)
+        goal = self.spec.get("protein_goal")
+        x0, x1 = W - 370, W - 40
+        cx = (x0 + x1) // 2
+        d.rounded_rectangle((x0, 290, x1, 540 if goal else 420), 24, fill=(0, 0, 0, 170))
+        d.text((cx, 322), "오늘 식비", font=self.f(30, "Bold"), fill=(200, 200, 200), anchor="mm")
+        d.text((cx, 377), won(money), font=self.f(50),
+               fill=(255, 214, 0) if money_rolling else (255, 255, 255), anchor="mm")
+        if not goal:
+            return
+        done = protein >= goal - 0.5
+        green = (80, 220, 120)
+        d.text((cx, 445), f"단백질 {int(round(protein))}g / {goal}g", font=self.f(32, "Bold"),
+               fill=green if done else ((255, 214, 0) if prot_rolling else (255, 255, 255)), anchor="mm")
+        bx0, bx1, by = x0 + 30, x1 - 30, 490
+        d.rounded_rectangle((bx0, by, bx1, by + 22), 11, fill=(255, 255, 255, 60))
+        fill_w = (bx1 - bx0) * min(protein / goal, 1)
+        if fill_w > 22:
+            d.rounded_rectangle((bx0, by, bx0 + fill_w, by + 22), 11,
+                                fill=green if done else (255, 214, 0))
 
     def card(self, layer, cx, cy, label, price, sub, scale, big=False):
         cw, ch = (720, 330) if big else (560, 230)
@@ -192,12 +218,7 @@ class Graphics:
             self.text(d, (W // 2, 200), self.spec["title"], 68)
 
         if sc.get("counter", True):
-            v = self.counter_value(t)
-            rolling = any(0 < t - at < 0.8 for at, _ in self.tl.counter_adds)
-            d.rounded_rectangle((W - 330, 290, W - 50, 420), 24, fill=(0, 0, 0, 170))
-            d.text((W - 190, 322), "오늘 식비", font=self.f(30, "Bold"), fill=(200, 200, 200), anchor="mm")
-            d.text((W - 190, 377), won(v), font=self.f(50),
-                   fill=(255, 214, 0) if rolling else (255, 255, 255), anchor="mm")
+            self.counters(d, t)
 
         if sc.get("hook"):
             k = ease_out_back(min(lt / 0.35, 1))
@@ -432,7 +453,7 @@ def render(spec_path, src_dir, out_path, fonts_dir, only=None):
         kind = {"card": "pop", "flash": "whoosh", "stamp": "stamp", "glitch": "glitch"}.get(e.kind)
         if kind:
             mix_at(audio, sfx(kind), e.t)
-    for at, _ in tl.counter_adds:
+    for at, _, _ in tl.counter_adds:
         mix_at(audio, sfx("ding"), at + 0.45)
     audio = audio[:int(tl.total * SR)]
     peak = np.abs(audio).max()
