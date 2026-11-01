@@ -1,2 +1,3 @@
-# PD
-instargram Marketing
+# PD — 인스타그램 릴스 자동화 영상 편집
+
+인스타그램 릴스(Instagram Reels)용 영상 편집을 자동화하는 프로젝트입니다.
